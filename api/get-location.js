@@ -1,30 +1,28 @@
+// api/get-location.js
+
 export default async function handler(req, res) {
   try {
-    if (!global.latestLocation) {
+    const response = await fetch(`${process.env.SUPABASE_URL}/rest/v1/locations?select=lat,lon,timestamp&order=timestamp.desc&limit=1`, {
+      headers: {
+        apikey: process.env.SUPABASE_SERVICE_ROLE,
+        Authorization: `Bearer ${process.env.SUPABASE_SERVICE_ROLE}`,
+      }
+    });
+
+    if (!response.ok) {
+      const errText = await response.text();
+      return res.status(500).json({ error: 'Failed to fetch location from Supabase', details: errText });
+    }
+
+    const data = await response.json();
+    if (!data.length) {
       return res.status(404).json({ error: 'No location available' });
     }
 
-    const { lat, lon, timestamp } = global.latestLocation;
-    const apiKey = process.env.OPENWEATHER_API_KEY;
-
-    if (!apiKey) {
-      return res.status(500).json({ error: 'Missing weather API key' });
-    }
-
-    const weatherUrl = `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=${apiKey}`;
-    const response = await fetch(weatherUrl); // 👈 native fetch
-    const weatherData = await response.json();
-
-    const condition = weatherData?.weather?.[0]?.main || "";
-    const isRaining = condition.toLowerCase().includes("rain");
-
-    return res.status(200).json({
-      raining: isRaining,
-      updated: timestamp
-    });
+    return res.status(200).json({ location: data[0] });
 
   } catch (err) {
-    console.error(err);
-    return res.status(500).json({ error: 'Weather lookup failed' });
+    console.error('[Server Error]', err);
+    return res.status(500).json({ error: 'Internal Server Error', details: err.message });
   }
 }
