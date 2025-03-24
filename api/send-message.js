@@ -21,6 +21,24 @@ export default async function handler(req, res) {
       html: buildEmailHTML(name, email, message)
     });
 
+    // Send confirmation to user if they included their email
+    if (email) {
+        await resend.emails.send({
+        from: 'Message Box <noreply@message.maxcarriker.me>',
+        to: email,
+        subject: '✅ Got your message!',
+        html: `
+            <div style="font-family: sans-serif; padding: 1.5rem; background: #f9f9f9; border-radius: 8px;">
+            <h2 style="margin-top: 0;">Thanks for your message, ${name || 'friend'}!</h2>
+            <p>Here's what you sent:</p>
+            <div style="white-space: pre-wrap; padding: 0.75rem; background: #fff; border: 1px solid #ccc; border-radius: 6px;">
+                ${message.replace(/\n/g, '<br>')}
+            </div>
+            <p style="margin-top: 1rem;">I'll take a look soon :)</p>
+            </div>
+        `
+        });
+    }
     res.status(200).json({ success: true });
   } catch (err) {
     console.error('Error sending email:', err);
