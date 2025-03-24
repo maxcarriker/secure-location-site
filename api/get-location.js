@@ -1,6 +1,3 @@
-// ==== Updated get-location.js with consistent rain condition logic ====
-import fetch from 'node-fetch';
-
 export default async function handler(req, res) {
   try {
     if (!global.latestLocation) {
@@ -15,10 +12,9 @@ export default async function handler(req, res) {
     }
 
     const weatherUrl = `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=${apiKey}`;
-    const response = await fetch(weatherUrl);
+    const response = await fetch(weatherUrl); // 👈 native fetch
     const weatherData = await response.json();
 
-    // Match original frontend logic: check first condition's "main"
     const condition = weatherData?.weather?.[0]?.main || "";
     const isRaining = condition.toLowerCase().includes("rain");
 
