@@ -1,4 +1,4 @@
-// ==== Updated get-location.js with weather check ====
+// ==== Updated get-location.js with consistent rain condition logic ====
 import fetch from 'node-fetch';
 
 export default async function handler(req, res) {
@@ -18,13 +18,12 @@ export default async function handler(req, res) {
     const response = await fetch(weatherUrl);
     const weatherData = await response.json();
 
-    // Determine if it's raining based on weather conditions
-    const isRaining = weatherData.weather?.some(condition =>
-      condition.main.toLowerCase().includes('rain')
-    );
+    // Match original frontend logic: check first condition's "main"
+    const condition = weatherData?.weather?.[0]?.main || "";
+    const isRaining = condition.toLowerCase().includes("rain");
 
     return res.status(200).json({
-      raining: !!isRaining,
+      raining: isRaining,
       updated: timestamp
     });
 
