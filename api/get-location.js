@@ -36,7 +36,6 @@ export default async function handler(req, res) {
     const isRaining = condition.includes('rain');
 
     return res.status(200).json({
-      location,
       weatherCondition: condition,
       isRaining
     });
