@@ -19,8 +19,12 @@ export default async function handler(req, res) {
   }
 
   try {
-    // Assume `timestamp` is something like "Mar 25, 2025 at 11:32 AM"
-    const incomingDate = new Date(timestamp).toISOString().split('T')[0];
+    // Normalize incoming timestamp to a comparable date string
+    const parsedIncoming = Date.parse(timestamp);
+    if (isNaN(parsedIncoming)) {
+      return res.status(400).json({ error: 'Invalid timestamp format' });
+    }
+    const incomingDate = new Date(parsedIncoming).toISOString().split('T')[0];
 
     // Step 1: fetch all existing timestamps
     const checkRes = await fetch(`${process.env.SUPABASE_URL}/rest/v1/distances?select=timestamp`, {
@@ -38,7 +42,9 @@ export default async function handler(req, res) {
 
     // Step 2: check if the same date is already present
     const alreadyPosted = existingEntries.some(entry => {
-      const entryDate = new Date(entry.timestamp).toISOString().split('T')[0];
+      const parsedEntry = Date.parse(entry.timestamp);
+      if (isNaN(parsedEntry)) return false;
+      const entryDate = new Date(parsedEntry).toISOString().split('T')[0];
       return entryDate === incomingDate;
     });
 
