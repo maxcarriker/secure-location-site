@@ -1,7 +1,5 @@
 // api/update-location.js
 
-import { parse } from 'date-fns';
-
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method Not Allowed' });
@@ -21,59 +19,27 @@ export default async function handler(req, res) {
   }
 
   try {
-    // Parse timestamp using a known format
-    const parsedIncomingDate = parse(timestamp, "MMM d, yyyy 'at' h:mm a", new Date());
-    if (isNaN(parsedIncomingDate)) {
-      return res.status(400).json({ error: 'Invalid timestamp format' });
-    }
-    const incomingDate = parsedIncomingDate.toISOString().split('T')[0];
-
-    // Step 1: fetch all existing timestamps
-    const checkRes = await fetch(`${process.env.SUPABASE_URL}/rest/v1/distances?select=timestamp`, {
+  console.log('SUPABASE_URL:', process.env.SUPABASE_URL);
+  console.log('SUPABASE_SERVICE_ROLE:', process.env.SUPABASE_SERVICE_ROLE ? 'present' : 'missing');
+      
+    const response = await fetch(`${process.env.SUPABASE_URL}/rest/v1/distances`, {
+      method: 'POST',
       headers: {
+        'Content-Type': 'application/json',
         apikey: process.env.SUPABASE_SERVICE_ROLE,
-        Authorization: `Bearer ${process.env.SUPABASE_SERVICE_ROLE}`
-      }
+        Authorization: `Bearer ${process.env.SUPABASE_SERVICE_ROLE}`,
+        Prefer: 'return=representation'
+      },
+      body: JSON.stringify({ distance, timestamp })
     });
 
-    if (!checkRes.ok) {
-      throw new Error('Failed to check existing distances');
+    if (!response.ok) {
+      const errText = await response.text();
+      return res.status(500).json({ error: 'Supabase insert failed', details: errText });
     }
 
-    const existingEntries = await checkRes.json();
-
-    // Step 2: check if the same date is already present
-    const alreadyPosted = existingEntries.some(entry => {
-      const parsedEntry = Date.parse(entry.timestamp);
-      if (isNaN(parsedEntry)) return false;
-      const entryDate = new Date(parsedEntry).toISOString().split('T')[0];
-      return entryDate === incomingDate;
-    });
-
-    // Step 3: only insert if not already posted for that date
-    if (!alreadyPosted) {
-      const response = await fetch(`${process.env.SUPABASE_URL}/rest/v1/distances`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          apikey: process.env.SUPABASE_SERVICE_ROLE,
-          Authorization: `Bearer ${process.env.SUPABASE_SERVICE_ROLE}`,
-          Prefer: 'return=representation'
-        },
-        body: JSON.stringify({ distance, timestamp })
-      });
-
-      if (!response.ok) {
-        const errText = await response.text();
-        return res.status(500).json({ error: 'Supabase insert failed', details: errText });
-      }
-
-      const data = await response.json();
-      return res.status(200).json({ success: true, inserted: data });
-    } else {
-      return res.status(200).json({ success: false, message: 'Distance already posted for this date.' });
-    }
-
+    const data = await response.json();
+    return res.status(200).json({ success: true, inserted: data });
   } catch (err) {
     console.error('[Server Error]', err);
     return res.status(500).json({ error: 'Internal Server Error', details: err.message });
