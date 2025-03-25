@@ -1,5 +1,7 @@
 // api/update-location.js
 
+import { parse } from 'date-fns';
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method Not Allowed' });
@@ -19,12 +21,12 @@ export default async function handler(req, res) {
   }
 
   try {
-    // Normalize incoming timestamp to a comparable date string
-    const parsedIncoming = Date.parse(timestamp);
-    if (isNaN(parsedIncoming)) {
+    // Parse timestamp using a known format
+    const parsedIncomingDate = parse(timestamp, "MMM d, yyyy 'at' h:mm a", new Date());
+    if (isNaN(parsedIncomingDate)) {
       return res.status(400).json({ error: 'Invalid timestamp format' });
     }
-    const incomingDate = new Date(parsedIncoming).toISOString().split('T')[0];
+    const incomingDate = parsedIncomingDate.toISOString().split('T')[0];
 
     // Step 1: fetch all existing timestamps
     const checkRes = await fetch(`${process.env.SUPABASE_URL}/rest/v1/distances?select=timestamp`, {
