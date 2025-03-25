@@ -20,19 +20,12 @@ export default async function handler(req, res) {
   
       const entries = await response.json();
   
-      // Aggregate only unique days (based on parsed date from timestamp)
-      const seenDays = new Set();
-      let total = 0;
-  
-      for (const entry of entries) {
-        const parsed = Date.parse(entry.timestamp);
-        if (isNaN(parsed)) continue;
-        const dayKey = new Date(parsed).toISOString().split('T')[0];
-        if (!seenDays.has(dayKey)) {
-          seenDays.add(dayKey);
-          total += Number(entry.distance) || 0;
-        }
-      }
+      // Aggregate only unique distances
+      const unique = new Set(
+        entries.map(e => parseFloat(e.distance).toFixed(6))
+      );
+      
+      const total = Array.from(unique).reduce((sum, val) => sum + parseFloat(val), 0);
   
       return res.status(200).json({ total });
   
