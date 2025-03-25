@@ -6,7 +6,7 @@ export default async function handler(req, res) {
 
   try {
     // Fetch latest location from Supabase
-    const response = await fetch(`${process.env.SUPABASE_URL}/rest/v1/locations?select=lat,lon,timestamp&order=timestamp.desc&limit=1`, {
+    const response = await fetch(`${process.env.SUPABASE_URL}/rest/v1/locations?select=lat,lon,timestamp,created_at&order=created_at.desc&limit=1`, {
       headers: {
         apikey: process.env.SUPABASE_SERVICE_ROLE,
         Authorization: `Bearer ${process.env.SUPABASE_SERVICE_ROLE}`,
