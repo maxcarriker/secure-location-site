@@ -36,7 +36,7 @@ export default async function handler(req, res) {
 
     const weatherData = await weatherRes.json();
     const condition = weatherData?.weather?.[0]?.main?.toLowerCase() || '';
-    const isRaining = condition.includes('rain');
+    const isRaining = ['rain', 'drizzle', 'thunderstorm'].some(keyword => condition.includes(keyword));
 
     return res.status(200).json({
       weatherCondition: condition,
