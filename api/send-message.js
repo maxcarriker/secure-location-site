@@ -24,7 +24,7 @@ export default async function handler(req, res) {
     // Send confirmation to user if they included their email
     if (email) {
         await resend.emails.send({
-        from: 'Message Box <noreply@message.maxcarriker.me>',
+        from: "Max's website <noreply@message.maxcarriker.me>",
         to: email,
         subject: '✅ Got your message!',
         html: `
