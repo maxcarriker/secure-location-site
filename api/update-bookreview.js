@@ -14,7 +14,7 @@ export default async function handler(req, res) {
 
   const { title, stars, review } = req.body;
 
-  if (!distance || !timestamp) {
+  if (!title || !stars || !review) {
     return res.status(400).json({ error: 'Missing required fields' });
   }
 
