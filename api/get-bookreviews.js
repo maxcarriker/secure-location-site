@@ -5,8 +5,8 @@ export default async function handler(req, res) {
   res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
 
   try {
-    // Fetch title, stars, and review from the Supabase 'bookreviews' table
-    const response = await fetch(`${process.env.SUPABASE_URL}/rest/v1/bookreviews?select=title,stars,review`, {
+    // Fetch title, stars, review, and created_at from the Supabase 'bookreviews' table
+    const response = await fetch(`${process.env.SUPABASE_URL}/rest/v1/bookreviews?select=title,stars,review,created_at`, {
       headers: {
         apikey: process.env.SUPABASE_SERVICE_ROLE,
         Authorization: `Bearer ${process.env.SUPABASE_SERVICE_ROLE}`,
@@ -20,7 +20,7 @@ export default async function handler(req, res) {
 
     const reviews = await response.json();
 
-    // Optional: parse star ratings into emojis (basic example)
+    // Convert star ratings into emojis (max 5 stars)
     const emojiStars = (stars) => {
       const match = stars.match(/(\d+)/);
       if (!match) return stars;
@@ -28,11 +28,20 @@ export default async function handler(req, res) {
       return '⭐'.repeat(num);
     };
 
-    // Add parsed emoji stars for each review
-    const formattedReviews = reviews.map(r => ({
-      ...r,
-      emojiStars: emojiStars(r.stars)
-    }));
+    // Create Open Library cover URL from title (simple fallback method)
+    const getCoverUrl = (title) => {
+      const encoded = encodeURIComponent(title.trim().toLowerCase());
+      return `https://covers.openlibrary.org/b/olid/${encoded}-M.jpg`; // optionally replace with API-based lookup
+    };
+
+    // Format and sort reviews by date descending
+    const formattedReviews = reviews
+      .map(r => ({
+        ...r,
+        emojiStars: emojiStars(r.stars),
+        coverUrl: getCoverUrl(r.title),
+      }))
+      .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
 
     return res.status(200).json({ reviews: formattedReviews });
 
