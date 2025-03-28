@@ -5,7 +5,6 @@ export default async function handler(req, res) {
   res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
 
   try {
-    // Fetch title, stars, review, and created_at from the Supabase 'bookreviews' table
     const response = await fetch(`${process.env.SUPABASE_URL}/rest/v1/bookreviews?select=title,stars,review,created_at`, {
       headers: {
         apikey: process.env.SUPABASE_SERVICE_ROLE,
@@ -20,7 +19,6 @@ export default async function handler(req, res) {
 
     const reviews = await response.json();
 
-    // Convert star ratings into emojis (max 5 stars)
     const emojiStars = (stars) => {
       const match = stars.match(/(\d+)/);
       if (!match) return stars;
@@ -28,22 +26,37 @@ export default async function handler(req, res) {
       return '⭐'.repeat(num);
     };
 
-    // Create Open Library cover URL from title (simple fallback method)
-    const getCoverUrl = (title) => {
-      const encoded = encodeURIComponent(title.trim().toLowerCase());
-      return `https://covers.openlibrary.org/b/olid/${encoded}-M.jpg`; // optionally replace with API-based lookup
+    const getCoverUrl = async (title) => {
+      try {
+        const query = encodeURIComponent(title);
+        const res = await fetch(`https://openlibrary.org/search.json?title=${query}&limit=1`);
+        const data = await res.json();
+        if (data.docs && data.docs[0]) {
+          const doc = data.docs[0];
+          if (doc.cover_i) {
+            return `https://covers.openlibrary.org/b/id/${doc.cover_i}-M.jpg`;
+          }
+        }
+      } catch (err) {
+        console.warn(`No cover found for title: ${title}`);
+      }
+      return null;
     };
 
-    // Format and sort reviews by date descending
-    const formattedReviews = reviews
-      .map(r => ({
-        ...r,
-        emojiStars: emojiStars(r.stars),
-        coverUrl: getCoverUrl(r.title),
-      }))
-      .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+    const enrichedReviews = await Promise.all(
+      reviews.map(async (r) => {
+        const coverUrl = await getCoverUrl(r.title);
+        return {
+          ...r,
+          emojiStars: emojiStars(r.stars),
+          coverUrl,
+        };
+      })
+    );
 
-    return res.status(200).json({ reviews: formattedReviews });
+    const sorted = enrichedReviews.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+
+    return res.status(200).json({ reviews: sorted });
 
   } catch (err) {
     console.error('[Server Error]', err);
