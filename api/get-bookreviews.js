@@ -29,7 +29,7 @@ export default async function handler(req, res) {
     const getCoverUrl = async (title) => {
       try {
         const query = encodeURIComponent(title);
-        const res = await fetch(`https://openlibrary.org/search.json?title=${query}&limit=1`);
+        const res = await fetch(`https://openlibrary.org/search.json?q=${query}&limit=1`);
         const data = await res.json();
         if (data.docs && data.docs[0]) {
           const doc = data.docs[0];
