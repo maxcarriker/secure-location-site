@@ -27,18 +27,26 @@ export default async function handler(req, res) {
     };
 
     const getCoverUrl = async (title) => {
+      const query = encodeURIComponent(title);
       try {
-        const query = encodeURIComponent(title);
-        const res = await fetch(`https://openlibrary.org/search.json?q=${query}&limit=1`);
-        const data = await res.json();
-        if (data.docs && data.docs[0]) {
-          const doc = data.docs[0];
-          if (doc.cover_i) {
-            return `https://covers.openlibrary.org/b/id/${doc.cover_i}-M.jpg`;
+        let res = await fetch(`https://openlibrary.org/search.json?q=${query}&limit=1`);
+        let data = await res.json();
+        if (data.docs && data.docs[0]?.cover_i) {
+          return `https://covers.openlibrary.org/b/id/${data.docs[0].cover_i}-M.jpg`;
+        }
+
+        // fallback: try everything before " by "
+        const shortTitle = title.split(" by ")[0];
+        if (shortTitle !== title) {
+          const fallbackQuery = encodeURIComponent(shortTitle);
+          res = await fetch(`https://openlibrary.org/search.json?q=${fallbackQuery}&limit=1`);
+          data = await res.json();
+          if (data.docs && data.docs[0]?.cover_i) {
+            return `https://covers.openlibrary.org/b/id/${data.docs[0].cover_i}-M.jpg`;
           }
         }
       } catch (err) {
-        console.warn(`No cover found for title: ${title}`);
+        console.warn(`No cover found for: ${title}`);
       }
       return null;
     };
